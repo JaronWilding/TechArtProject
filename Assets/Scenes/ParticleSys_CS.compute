@@ -1,0 +1,40 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel StartSim
+
+float Width;
+float Height;
+sampler2D Input;
+
+struct Point
+{
+	public Vector3 pos;
+	public Vector3 vel;
+};
+
+RWTexture2D<float4> Result;
+
+[numthreads(8,8,1)]
+void StartSim(uint3 id : SV_DispatchThreadID)
+{
+	float2 pos = float2((id.x) / Width, (id.y) / Height);
+	float2 pix = float2(1.0 / Width, 1.0 / Height);
+
+	float4 currentPixel = tex2Dlod(Input, float4(pos.x, pos.y, 0, 0));
+
+	float4 neighbourPixels = float4(0, 0, 0, 0);
+
+	neighbourPixels += tex2Dlod(Input, float4(pos.x + pix.x, pos.y + pix.y, 0, 0));		// Top right
+	neighbourPixels += tex2Dlod(Input, float4(pos.x, pos.y + pix.y, 0, 0));				// Top
+	neighbourPixels += tex2Dlod(Input, float4(pos.x - pix.x, pos.y + pix.y, 0, 0));		// Top left
+
+	neighbourPixels += tex2Dlod(Input, float4(pos.x + pix.x, pos.y, 0, 0));		// Right
+	neighbourPixels += tex2Dlod(Input, float4(pos.x - pix.x, pos.y, 0, 0));		// Left
+
+	neighbourPixels += tex2Dlod(Input, float4(pos.x + pix.x, pos.y - pix.y, 0, 0));		// Bottom right
+	neighbourPixels += tex2Dlod(Input, float4(pos.x, pos.y + pix.y, 0, 0));				// Bottom
+	neighbourPixels += tex2Dlod(Input, float4(pos.x - pix.x, pos.y - pix.y, 0, 0));		// Bottom left
+
+	neighbourPixels += currentPixel;
+
+	Result[id.xy] = neighbourPixels / 9;
+}
